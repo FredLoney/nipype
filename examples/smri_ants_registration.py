@@ -81,11 +81,8 @@ reg.inputs.use_estimate_learning_rate_once = [True] * 4
 reg.inputs.use_histogram_matching = [False] * 3 + [True]
 reg.inputs.initial_moving_transform_com = True
 
-print reg.cmdline
-
-
 """
-3. Run the registration
+4. Run the registration
 """
 
 reg.run()
