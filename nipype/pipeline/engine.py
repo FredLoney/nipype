@@ -139,7 +139,10 @@ class WorkflowBase(object):
             default=None, which results in the use of mkdtemp
 
         """
-        self.base_dir = base_dir
+        if base_dir:
+            self.base_dir = os.path.abspath(base_dir)
+        else:
+            self.base_dir = None
         self.config = None
         self._verify_name(name)
         self.name = name
