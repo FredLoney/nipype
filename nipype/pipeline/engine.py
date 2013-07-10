@@ -143,7 +143,10 @@ class WorkflowBase(object):
             Name of this node. Name must be alphanumeric and not contain any
             special characters (e.g., '.', '@').
         """
-        self.base_dir = base_dir
+        if base_dir:
+            self.base_dir = os.path.abspath(base_dir)
+        else:
+            self.base_dir = None
         self.config = None #deepcopy(config._sections)
         if name is None:
             raise Exception("init requires a name for this %s" %
