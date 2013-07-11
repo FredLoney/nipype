@@ -230,8 +230,7 @@ class Workflow(WorkflowBase):
 
         .. note::
 
-          Will reset attributes used for executing workflow. See
-          _init_runtime_fields.
+          Will reset attributes used for executing workflow.
 
         Parameters
         ----------
