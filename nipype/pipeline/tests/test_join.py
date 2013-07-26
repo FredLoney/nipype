@@ -37,7 +37,7 @@ class IncrementInterface(nib.BaseInterface):
 
 _sum = 0
 
-_join = None
+_sum_operands = None
 
 class SumInputSpec(nib.TraitedSpec):
     input1 = nib.traits.List(nib.traits.Int, mandatory=True, desc='input')
@@ -56,10 +56,34 @@ class SumInterface(nib.BaseInterface):
 
     def _list_outputs(self):
         global _sum
-        global _join
+        global _sum_operands
         outputs = self._outputs().get()
-        _join = outputs['operands'] = self.inputs.input1
+        _sum_operands = outputs['operands'] = self.inputs.input1
         _sum = outputs['output1'] = sum(self.inputs.input1)
+        return outputs
+
+
+_set_len = None
+"""The Set interface execution result."""
+
+class SetInputSpec(nib.TraitedSpec):
+    input1 = nib.traits.Set(nib.traits.Int, mandatory=True, desc='input')
+
+class SetOutputSpec(nib.TraitedSpec):
+    output1 = nib.traits.Int(desc='ouput')
+
+class SetInterface(nib.BaseInterface):
+    input_spec = SetInputSpec
+    output_spec = SetOutputSpec
+
+    def _run_interface(self, runtime):
+        runtime.returncode = 0
+        return runtime
+
+    def _list_outputs(self):
+        global _set_len
+        outputs = self._outputs().get()
+        _set_len = outputs['output1'] = len(self.inputs.input1)
         return outputs
 
 
@@ -128,7 +152,7 @@ def test_join_expansion():
     # the join Sum result is (1 + 1 + 1) + (2 + 1 + 1)
     assert_equal(_sum, 7, "The join Sum output value is incorrect: %s." % _sum)
     # the join input preserves the iterables input order
-    assert_equal(_join, [3, 4], "The join Sum input is incorrect: %s." % _join)
+    assert_equal(_sum_operands, [3, 4], "The join Sum input is incorrect: %s." % _sum_operands)
     # there are two iterations of the post-join node in the iterable path
     assert_equal(len(_products), 2,
                  "The number of iterated post-join outputs is incorrect")
@@ -136,6 +160,63 @@ def test_join_expansion():
     os.chdir(cwd)
     rmtree(wd)
 
+def test_set_join_node():
+    cwd = os.getcwd()
+    wd = mkdtemp()
+    os.chdir(wd)
+
+    # Make the workflow.
+    wf = pe.Workflow(name='test')
+    # the iterated input node
+    inputspec = pe.Node(IdentityInterface(fields=['n']), name='inputspec')
+    inputspec.iterables = [('n', [1, 2, 1, 3, 2])]
+    # a pre-join node in the iterated path
+    pre_join1 = pe.Node(IncrementInterface(), name='pre_join1')
+    wf.connect(inputspec, 'n', pre_join1, 'input1')
+    # the set join node
+    join = pe.JoinNode(SetInterface(), joinsource='inputspec',
+        joinfield='input1', name='join')
+    wf.connect(pre_join1, 'output1', join, 'input1')
+    
+    wf.run()
+    
+    # the join length is the number of unique inputs
+    assert_equal(_set_len, 3, "The join Set output value is incorrect: %s." % _set_len)
+
+    os.chdir(cwd)
+    rmtree(wd)
+
+def test_identity_join_node():
+    cwd = os.getcwd()
+    wd = mkdtemp()
+    os.chdir(wd)
+
+    # Make the workflow.
+    wf = pe.Workflow(name='test')
+    # the iterated input node
+    inputspec = pe.Node(IdentityInterface(fields=['n']), name='inputspec')
+    inputspec.iterables = [('n', [1, 2, 3])]
+    # a pre-join node in the iterated path
+    pre_join1 = pe.Node(IncrementInterface(), name='pre_join1')
+    wf.connect(inputspec, 'n', pre_join1, 'input1')
+    # the IdentityInterface join node
+    join = pe.JoinNode(IdentityInterface(fields=['vector']), joinsource='inputspec',
+        joinfield='vector', name='join')
+    wf.connect(pre_join1, 'output1', join, 'vector')
+    # an uniterated post-join node
+    post_join1 = pe.Node(SumInterface(), name='post_join1')
+    wf.connect(join, 'vector', post_join1, 'input1')
+    
+    result = wf.run()
+    
+    # the expanded graph contains 1 * 3 iteration pre-join nodes, 1 join
+    # node and 1 post-join node. Nipype factors away the iterable input
+    # IdentityInterface but keeps the join IdentityInterface.
+    assert_equal(len(result.nodes()), 5, "The number of expanded nodes is incorrect.")
+    assert_equal(_sum_operands, [2, 3, 4],
+                 "The join Sum input is incorrect: %s." %_sum_operands)
+    os.chdir(cwd)
+    rmtree(wd)
 
 if __name__ == "__main__":
     import nose
