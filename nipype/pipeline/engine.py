@@ -1100,8 +1100,9 @@ class Node(WorkflowBase):
 
     """
 
-    def __init__(self, interface, name, iterables=None, overwrite=None,
-                 needed_outputs=None, run_without_submitting=False, **kwargs):
+    def __init__(self, interface, name, iterables=None, itersource=None,
+                 overwrite=None, needed_outputs=None,
+                 run_without_submitting=False, **kwargs):
         """
         Parameters
         ----------
@@ -1119,6 +1120,19 @@ class Node(WorkflowBase):
             of tuples
             node.iterables = ('frac',[0.5,0.6,0.7])
             node.iterables = [('fwhm',[2,4]),('fieldx',[0.5,0.6,0.7])]
+            
+            if this node has an itersource, then the iterables values
+            is a dictionary whose keys are the iterable source node
+            iterables field values, e.g.:
+            inputspec.iterables = ('images',['img1.nii', 'img2.nii']])
+            node.itersource = 'inputspec'
+            node.iterables = ('frac', {'img1.nii': [0.5, 0.6],
+                                       'img2.nii': [0.6, 0.7]})
+        
+        itersource: str
+            the name of the predecessor iterable node whose iterables
+            field values comprise the key to the iterables dictionary
+            values. 
 
         joinsource: Node
             The iterable node joined by this Join node
@@ -1148,6 +1162,7 @@ class Node(WorkflowBase):
         self.name = name
         self._result = None
         self.iterables = iterables
+        self.itersource = itersource
         self.overwrite = overwrite
         self.parameterization = None
         self.run_without_submitting = run_without_submitting
@@ -1874,6 +1889,7 @@ class JoinNode(Node):
             return list(OrderedDict.fromkeys(val))
         else:
             return val
+
 
 class MapNode(Node):
     """Wraps interface objects that need to be iterated on a list of inputs.
