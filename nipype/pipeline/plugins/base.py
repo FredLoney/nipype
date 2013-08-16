@@ -44,7 +44,7 @@ def report_crash(node, traceback=None, hostname=None):
             host = hostname
         else:
             host = gethostname()
-    message = ['Node %s failed to run on host %s.' % (name,
+    message = ['Node %s failed to run on host %s:' % (name,
                                                       host)]
     logger.error(message)
     if not traceback:
@@ -52,6 +52,8 @@ def report_crash(node, traceback=None, hostname=None):
         traceback = format_exception(exc_type,
                                      exc_value,
                                      exc_traceback)
+    for line in traceback.splitlines():
+        logger.error(line)
     timeofcrash = strftime('%Y%m%d-%H%M%S')
     login_name = pwd.getpwuid(os.geteuid())[0]
     crashfile = 'crash-%s-%s-%s.npz' % (timeofcrash,
