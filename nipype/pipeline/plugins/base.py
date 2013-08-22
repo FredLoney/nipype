@@ -6,6 +6,7 @@
 from copy import deepcopy
 from glob import glob
 import os
+import stat
 import pwd
 import shutil
 from socket import gethostname
@@ -528,6 +529,8 @@ class SGELikeBatchManagerBase(DistributedPluginBase):
         fp = open(batchscriptfile, 'wt')
         fp.writelines(batchscript)
         fp.close()
+        # Make the script executable
+        os.chmod(batchscriptfile, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
         return self._submit_batchtask(batchscriptfile, node)
 
     def _report_crash(self, node, result=None):
