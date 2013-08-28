@@ -53,7 +53,8 @@ def report_crash(node, traceback=None, hostname=None):
         traceback = format_exception(exc_type,
                                      exc_value,
                                      exc_traceback)
-    for line in traceback.splitlines():
+    # Write the traceback to the log
+    for line in traceback:
         logger.error(line)
     timeofcrash = strftime('%Y%m%d-%H%M%S')
     login_name = pwd.getpwuid(os.geteuid())[0]
