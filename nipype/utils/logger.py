@@ -19,7 +19,7 @@ class Logging(object):
     """Nipype logging class
     """
     fmt = ('%(asctime)s,%(msecs)d %(name)-2s '
-           '%(levelname)-2s:\n\t %(message)s')
+           '%(levelname)-2s: %(message)s')
     datefmt = '%y%m%d-%H:%M:%S'
     def __init__(self, config):
         self._config = config
