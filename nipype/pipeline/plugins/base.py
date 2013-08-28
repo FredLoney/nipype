@@ -52,9 +52,6 @@ def report_crash(node, traceback=None, hostname=None):
         traceback = format_exception(exc_type,
                                      exc_value,
                                      exc_traceback)
-    # Write the traceback to the log
-    for line in traceback:
-        logger.error(line)
     timeofcrash = strftime('%Y%m%d-%H%M%S')
     login_name = pwd.getpwuid(os.geteuid())[0]
     crashfile = 'crash-%s-%s-%s.npz' % (timeofcrash,
@@ -66,8 +63,8 @@ def report_crash(node, traceback=None, hostname=None):
     if not os.path.exists(crashdir):
         os.makedirs(crashdir)
     crashfile = os.path.join(crashdir, crashfile)
-    logger.info('Saving crash info to %s' % crashfile)
-    logger.info(''.join(traceback))
+    logger.error('Saving crash info to %s' % crashfile)
+    logger.error(''.join(traceback))
     np.savez(crashfile, node=node, traceback=traceback)
     return crashfile
 
