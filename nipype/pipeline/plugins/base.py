@@ -63,8 +63,8 @@ def report_crash(node, traceback=None, hostname=None):
     if not os.path.exists(crashdir):
         os.makedirs(crashdir)
     crashfile = os.path.join(crashdir, crashfile)
-    logger.info('Saving crash info to %s' % crashfile)
-    logger.info(''.join(traceback))
+    logger.error('Saving crash info to %s' % crashfile)
+    logger.error(''.join(traceback))
     np.savez(crashfile, node=node, traceback=traceback)
     return crashfile
 
