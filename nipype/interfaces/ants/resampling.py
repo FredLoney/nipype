@@ -286,7 +286,7 @@ class ApplyTransforms(ANTSCommand):
             output = self.inputs.output_image
             if not isdefined(output):
                 _, name, ext = split_filename(self.inputs.input_image)
-                output = name + '_trans' + ext
+                output = name + self.inputs.out_postfix + ext
             return output
         return None
 
