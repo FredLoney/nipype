@@ -634,6 +634,7 @@ def generate_expanded_graph(graph_in):
         else:
             iterables = inode.iterables.copy()
         inode.iterables = None
+        logger.debug('node: %s iterables: %s' % (inode, iterables))
 
         # collect the subnodes to expand
         subnodes = [s for s in dfs_preorder(graph_in, inode)]
@@ -728,6 +729,7 @@ def generate_expanded_graph(graph_in):
             node.parameterization = [param for _, param in
                                      sorted(node.parameterization)]
     logger.debug("PE: expanding iterables ... done")
+
     return _remove_nonjoin_identity_nodes(graph_in)
 
 def _iterable_nodes(graph_in):
