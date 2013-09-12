@@ -359,9 +359,8 @@ connected.
                 connected_ports[destnode] += [dest]
         infostr = []
         for info in not_found:
-            infostr += ["Module %s has no %sput called %s\n" % (info[1],
-                                                                info[0],
-                                                                info[2])]
+            infostr += ["The %s workflow module %s has no %sput called %s\n" %
+                        (self.name, info[1], info[0], info[2])]
         if not_found:
             raise Exception('\n'.join(['Some connections were not found'] +
                                       infostr))
