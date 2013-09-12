@@ -288,18 +288,25 @@ class Workflow(WorkflowBase):
              function as we use the inspect module to get at the source code
              and execute it remotely
         """
-        if len(args) == 1:
+        if not args:
+            raise ValueError('Missing the %s connect function parameters' %
+                             self.name)
+        elif len(args) == 1:
             connection_list = args[0]
         elif len(args) == 4:
             connection_list = [(args[0], args[2], [(args[1], args[3])])]
         else:
-            raise Exception('unknown set of parameters to connect function')
+            raise ValueError('Unknown set of parameters to the %s connect'
+                            ' function: %s: ' % (self.name, args))
         if not kwargs:
             disconnect = False
         else:
             disconnect = kwargs['disconnect']
         newnodes = []
         for srcnode, destnode, _ in connection_list:
+            if not srcnode or not destnode:
+                raise ValueError('Missing a node in the %s connection list:'
+                                 ' %s' % (self.name, connection_list))
             if self in [srcnode, destnode]:
                 msg = ('Workflow connect cannot contain itself as node:'
                        ' src[%s] dest[%s] workflow[%s]') % (srcnode,
