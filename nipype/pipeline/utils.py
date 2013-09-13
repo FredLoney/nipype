@@ -323,7 +323,7 @@ def _merge_graphs(supergraph, nodes, subgraph, nodeid, iterables, prefix):
     # Retrieve edge information connecting nodes of the subgraph to other
     # nodes of the supergraph.
     supernodes = supergraph.nodes()
-    ids = [n._hierarchy + n._id for n in supernodes]
+    ids = ['.'.join((n._hierarchy, n._id)) for n in supernodes]
     if len(np.unique(ids)) != len(ids):
         # This should trap the problem of miswiring when multiple iterables are
         # used at the same level. The use of the template below for naming
@@ -332,13 +332,14 @@ def _merge_graphs(supergraph, nodes, subgraph, nodeid, iterables, prefix):
                          "names. Please rerun the workflow"))
     edgeinfo = {}
     for n in subgraph.nodes():
-        nidx = ids.index(n._hierarchy + n._id)
+        nid = '.'.join((n._hierarchy, n._id))
+        nidx = ids.index(nid)
         for edge in supergraph.in_edges_iter(supernodes[nidx]):
                 #make sure edge is not part of subgraph
             if edge[0] not in subgraph.nodes():
-                if n._hierarchy + n._id not in edgeinfo.keys():
-                    edgeinfo[n._hierarchy + n._id] = []
-                edgeinfo[n._hierarchy + n._id].append((edge[0],
+                if nid not in edgeinfo.keys():
+                    edgeinfo[nid] = []
+                edgeinfo[nid].append((edge[0],
                                        supergraph.get_edge_data(*edge)))
     supergraph.remove_nodes_from(nodes)
     # Add copies of the subgraph depending on the number of iterables
@@ -352,7 +353,7 @@ def _merge_graphs(supergraph, nodes, subgraph, nodeid, iterables, prefix):
     # Copy the iterable subgraphs
     for i, params in enumerate(iterable_params):
         Gc = deepcopy(subgraph)
-        ids = [n._hierarchy + n._id for n in Gc.nodes()]
+        ids = ['.'.join((n._hierarchy, n._id)) for n in Gc.nodes()]
         nodeidx = ids.index(nodeid)
         rootnode = Gc.nodes()[nodeidx]
         paramstr = ''
@@ -381,8 +382,9 @@ def _merge_graphs(supergraph, nodes, subgraph, nodeid, iterables, prefix):
         supergraph.add_nodes_from(Gc.nodes())
         supergraph.add_edges_from(Gc.edges(data=True))
         for node in Gc.nodes():
-            if node._hierarchy + node._id in edgeinfo.keys():
-                for info in edgeinfo[node._hierarchy + node._id]:
+            nid = '.'.join((node._hierarchy, node._id))
+            if nid in edgeinfo.keys():
+                for info in edgeinfo[nid]:
                     supergraph.add_edges_from([(info[0], node, info[1])])
             node._id += template % i
     return supergraph
@@ -520,9 +522,9 @@ def generate_expanded_graph(graph_in):
             node._id += ('.' + iterable_prefix + 'I')
             logger.debug(('subnodes:', subnodes))
             subgraph = graph_in.subgraph(subnodes)
-            graph_in = _merge_graphs(graph_in, subnodes,
-                                     subgraph, node._hierarchy + node._id,
-                                     iterables, iterable_prefix)
+            inid = '.'.join((inode._hierarchy, inode._id))
+            graph_in = _merge_graphs(graph_in, subnodes, subgraph, inid,
+                                     iterable_prefix, inode.synchronize)
             #nx.write_dot(graph_in, '%s_post.dot'%node)
         else:
             moreiterables = False
