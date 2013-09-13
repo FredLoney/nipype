@@ -652,9 +652,9 @@ def generate_expanded_graph(graph_in):
 
         # merge the iterated subgraphs
         subgraph = graph_in.subgraph(subnodes)
-        graph_in = _merge_graphs(graph_in, subnodes,
-                                 subgraph, inode._hierarchy + inode._id,
-                                 iterables, iterable_prefix, inode.synchronize)
+        inid = '.'.join((inode._hierarchy, inode._id))
+        graph_in = _merge_graphs(graph_in, subnodes, subgraph, inid,
+                                 iterable_prefix, inode.synchronize)
 
         # reconnect the join nodes
         for jnode in jnodes:
