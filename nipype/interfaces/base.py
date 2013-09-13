@@ -602,6 +602,14 @@ class DynamicTraitedSpec(BaseTraitedSpec):
         return dup
 
 
+class StrictDynamicTraitedSpec(DynamicTraitedSpec):
+    """A subclass that disallows setting undefined traits."""
+
+    # TODO - the magic below is stolen from traits, but breaks __deepcopy__;
+    #        try something else 
+    #_ = traits.Disallow
+
+
 class TraitedSpec(BaseTraitedSpec):
     """ Create a subclass with strict traits.
 

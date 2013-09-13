@@ -7,8 +7,9 @@ import numpy as np
 import nibabel as nb
 
 from nipype.utils.filemanip import (filename_to_list, copyfile, split_filename)
-from nipype.interfaces.base import (traits, TraitedSpec, DynamicTraitedSpec, File,
-                                    Undefined, isdefined, OutputMultiPath,
+from nipype.interfaces.base import (traits, TraitedSpec, DynamicTraitedSpec,
+                                    StrictDynamicTraitedSpec, File, Undefined,
+                                    isdefined, OutputMultiPath,
     InputMultiPath, BaseInterface, BaseInterfaceInputSpec)
 from nipype.interfaces.io import IOBase, add_traits
 from nipype.testing import assert_equal
@@ -40,7 +41,7 @@ class IdentityInterface(IOBase):
     >>> out = ii2.run() # doctest: +SKIP
     ValueError: IdentityInterface requires a value for input 'b' because it was listed in 'fields' Interface IdentityInterface failed to run.
     """
-    input_spec = DynamicTraitedSpec
+    input_spec = StrictDynamicTraitedSpec
     output_spec = DynamicTraitedSpec
 
     def __init__(self, fields=None, mandatory_inputs=True, **inputs):
