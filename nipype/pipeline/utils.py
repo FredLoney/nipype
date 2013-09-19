@@ -500,7 +500,6 @@ def generate_expanded_graph(graph_in):
             node.iterables = dict(map(lambda(x): (x[0],
                                                   lambda: x[1]),
                                       node.iterables))
-    allprefixes = list('abcdefghijklmnopqrstuvwxyz')
     while moreiterables:
         nodes = nx.topological_sort(graph_in)
         nodes.reverse()
@@ -510,18 +509,8 @@ def generate_expanded_graph(graph_in):
             iterables = node.iterables.copy()
             node.iterables = None
             logger.debug('node: %s iterables: %s' % (node, iterables))
-            subnodes = [s for s in dfs_preorder(graph_in, node)]
-            prior_prefix = []
-            for s in subnodes:
-                prior_prefix.extend(re.findall('\.(.)I', s._id))
-            prior_prefix = sorted(prior_prefix)
-            if not len(prior_prefix):
-                iterable_prefix = 'a'
-            else:
-                if prior_prefix[-1] == 'z':
-                    raise ValueError('Too many iterables in the workflow')
-                iterable_prefix = \
-                           allprefixes[allprefixes.index(prior_prefix[-1]) + 1]
+            subnodes = list(dfs_preorder(graph_in, node))
+            iterable_prefix = _next_iterables_expansion_prefix(subnodes)
             node._id += ('.' + iterable_prefix + 'I')
             logger.debug(('subnodes:', subnodes))
             subgraph = graph_in.subgraph(subnodes)
@@ -537,6 +526,35 @@ def generate_expanded_graph(graph_in):
                                      sorted(node.parameterization)]
     logger.debug("PE: expanding iterables ... done")
     return _remove_identity_nodes(graph_in)
+
+
+ITERABLES_PREFIX_PAT = re.compile('\.(.)I')
+"""The pattern for matching an iterables node id prefix character."""
+
+def  _next_iterables_expansion_prefix(nodes):
+    """Return the next available prefix character for the given nodes.
+    
+    Parameters
+    ----------
+    nodes: a node iterator
+    
+    Exceptions
+    ----------
+    ValueError: if there are too many iterables in the workflow
+    """
+    # The iterables node id prefix characters already used
+    prior_prefixes = ((ITERABLES_PREFIX_PAT.findall(s._id) for s in nodes))
+    # The largest prefix character ordinals
+    max_ords = [max(ord(c) for c in p) for p in prior_prefixes if p]
+    if not max_ords:
+        return 'a'
+    # The largest prefix character ordinal
+    max_ord = max(max_ords)
+    # The last prefix is 'z' 
+    if max_ord == ord('z'):
+        raise ValueError('Too many iterables in the workflow')
+    # Return the next available prefix character
+    return chr(max_ord + 1)
 
 
 def export_graph(graph_in, base_dir=None, show=False, use_execgraph=False,
