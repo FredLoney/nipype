@@ -32,11 +32,23 @@ from .. import get_info
 from .. import logging, config
 logger = logging.getLogger('workflow')
 
-try:
-    dfs_preorder = nx.dfs_preorder
-except AttributeError:
-    dfs_preorder = nx.dfs_preorder_nodes
-    logger.debug('networkx 1.4 dev or higher detected')
+
+def dfs_preorder_function():
+    """Return the networkx dfs_preoder function
+    
+    If networkx 1.4 dev is installed, then the preorder function
+    is dfs_preorder_nodes, otherwise the preorder function is
+    dfs_preorder."""
+    if hasattr(dfs_preorder_function, 'dfs_preorder_function'):
+        return dfs_preorder_function.dfs_preorder_function
+    try:
+        dfs_preorder = nx.dfs_preorder
+    except AttributeError:
+        dfs_preorder = nx.dfs_preorder_nodes
+        logger.debug('networkx 1.4 dev or higher detected')
+    dfs_preorder_function.dfs_preorder_function = dfs_preorder
+    return dfs_preorder
+
 
 try:
     from os.path import relpath
@@ -488,6 +500,9 @@ def generate_expanded_graph(graph_in):
     and b=[3,4] this procedure will generate a graph with sub-graphs
     parameterized as (a=1,b=3), (a=1,b=4), (a=2,b=3) and (a=2,b=4).
     """
+    # the networkx preorder function
+    dfs_preorder = dfs_preorder_function()
+    
     logger.debug("PE: expanding iterables")
     graph_in = _remove_identity_nodes(graph_in, keep_iterables=True)
     moreiterables = True
