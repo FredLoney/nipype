@@ -6,7 +6,7 @@ import os
 
 from .base import (PluginBase, logger, report_crash, report_nodes_not_run,
                    str2bool)
-from ..utils import (nx, dfs_preorder)
+from ..utils import (nx, dfs_preorder_function)
 
 class LinearPlugin(PluginBase):
     """Execute workflow in series
@@ -25,6 +25,7 @@ class LinearPlugin(PluginBase):
         if not isinstance(graph, nx.DiGraph):
             raise ValueError('Input must be a networkx digraph object')
         logger.info("Running serially.")
+        dfs_preorder = dfs_preorder_function()
         old_wd = os.getcwd()
         notrun = []
         donotrun = []

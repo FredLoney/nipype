@@ -18,7 +18,7 @@ from warnings import warn
 import numpy as np
 import scipy.sparse as ssp
 
-from ..utils import (nx, dfs_preorder)
+from ..utils import (nx, dfs_preorder_function)
 from ..engine import (MapNode, str2bool)
 
 from nipype.utils.filemanip import savepkl, loadpkl
@@ -414,6 +414,7 @@ class DistributedPluginBase(PluginBase):
         self.proc_pending = np.zeros(len(self.procs), dtype=bool)
 
     def _remove_node_deps(self, jobid, crashfile, graph):
+        dfs_preorder = dfs_preorder_function()
         subnodes = [s for s in dfs_preorder(graph, self.procs[jobid])]
         for node in subnodes:
             idx = self.procs.index(node)
