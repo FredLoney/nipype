@@ -6,6 +6,7 @@
 from copy import deepcopy
 from glob import glob
 import os
+import stat
 import pwd
 import shutil
 from socket import gethostname
@@ -17,7 +18,7 @@ from warnings import warn
 import numpy as np
 import scipy.sparse as ssp
 
-from ..utils import (nx, dfs_preorder)
+from ..utils import (nx, dfs_preorder_function)
 from ..engine import (MapNode, str2bool)
 
 from nipype.utils.filemanip import savepkl, loadpkl
@@ -413,6 +414,7 @@ class DistributedPluginBase(PluginBase):
         self.proc_pending = np.zeros(len(self.procs), dtype=bool)
 
     def _remove_node_deps(self, jobid, crashfile, graph):
+        dfs_preorder = dfs_preorder_function()
         subnodes = [s for s in dfs_preorder(graph, self.procs[jobid])]
         for node in subnodes:
             idx = self.procs.index(node)
@@ -528,6 +530,8 @@ class SGELikeBatchManagerBase(DistributedPluginBase):
         fp = open(batchscriptfile, 'wt')
         fp.writelines(batchscript)
         fp.close()
+        # Make the script executable
+        os.chmod(batchscriptfile, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
         return self._submit_batchtask(batchscriptfile, node)
 
     def _report_crash(self, node, result=None):

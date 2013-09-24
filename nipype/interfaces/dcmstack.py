@@ -282,8 +282,13 @@ class CopyMeta(BaseInterface):
             dest_dict = dest.meta_ext.get_class_dict(cls)
             dest_dict.update(src_dict)
 
+        # Update the shape and slice dimension to reflect the meta extension update.
+        dest.meta_ext.slice_dim = src.meta_ext.slice_dim
+        dest.meta_ext.shape = src.meta_ext.shape
+        # Set the output file name.
         self.out_path = path.join(os.getcwd(),
                                   path.basename(self.inputs.dest_file))
+        # Copy the metadata.
         dest.to_filename(self.out_path)
 
         return runtime
