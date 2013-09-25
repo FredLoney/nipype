@@ -413,11 +413,7 @@ def _merge_graphs(supergraph, nodes, subgraph, nodeid, iterables,
                                       supergraph.get_edge_data(*edge)))
     supergraph.remove_nodes_from(nodes)
     # Add copies of the subgraph depending on the number of iterables
-<<<<<<< .merge_file_svhY9W
-    iterable_params = list(walk(iterables.items()))
-=======
     iterable_params = expand_iterables(iterables, synchronize)
->>>>>>> .merge_file_AdkU5s
     # If there are no iterable subgraphs, then return
     if not iterable_params:
         return supergraph
@@ -588,37 +584,6 @@ def generate_expanded_graph(graph_in):
     dfs_preorder = dfs_preorder_function()
     
     logger.debug("PE: expanding iterables")
-<<<<<<< .merge_file_svhY9W
-    graph_in = _remove_identity_nodes(graph_in, keep_iterables=True)
-    moreiterables = True
-    # convert list of tuples to dict fields
-    for node in graph_in.nodes():
-        if isinstance(node.iterables, tuple):
-            node.iterables = [node.iterables]
-    for node in graph_in.nodes():
-        if isinstance(node.iterables, list):
-            node.iterables = dict(map(lambda(x): (x[0],
-                                                  lambda: x[1]),
-                                      node.iterables))
-    while moreiterables:
-        nodes = nx.topological_sort(graph_in)
-        nodes.reverse()
-        inodes = [node for node in nodes if node.iterables is not None]
-        if inodes:
-            node = inodes[0]
-            iterables = node.iterables.copy()
-            node.iterables = None
-            logger.debug('node: %s iterables: %s' % (node, iterables))
-            subnodes = list(dfs_preorder(graph_in, node))
-            iterable_prefix = _next_iterables_expansion_prefix(subnodes)
-            node._id += ('.' + iterable_prefix + 'I')
-            logger.debug(('subnodes:', subnodes))
-            subgraph = graph_in.subgraph(subnodes)
-            inid = '.'.join((inode._hierarchy, inode._id))
-            graph_in = _merge_graphs(graph_in, subnodes, subgraph, inid,
-                                     iterable_prefix, inode.synchronize)
-            #nx.write_dot(graph_in, '%s_post.dot'%node)
-=======
     graph_in = _remove_nonjoin_identity_nodes(graph_in, keep_iterables=True)
     # the iterable nodes
     inodes = _iterable_nodes(graph_in)
@@ -649,7 +614,6 @@ def generate_expanded_graph(graph_in):
 
     # while there is an iterable node, expand the iterable node's
     # subgraphs
-    allprefixes = list('abcdefghijklmnopqrstuvwxyz')
     unexpanded_inodes = inodes
     iter_src_filter = lambda node: any((node._id.startswith(inode._id)
                                         for inode in inodes))
@@ -709,33 +673,20 @@ def generate_expanded_graph(graph_in):
             iter_items = map(lambda(field, value): (field, lambda: value),
                              iter_dict.iteritems())
             iterables = dict(iter_items)
->>>>>>> .merge_file_AdkU5s
         else:
             iterables = inode.iterables.copy()
         inode.iterables = None
 
         # collect the subnodes to expand
-        subnodes = [s for s in dfs_preorder(graph_in, inode)]
-        prior_prefix = []
-        for s in subnodes:
-            prior_prefix.extend(re.findall('\.(.)I', s._id))
-        prior_prefix = sorted(prior_prefix)
-        if not len(prior_prefix):
-            iterable_prefix = 'a'
-        else:
-            if prior_prefix[-1] == 'z':
-                raise ValueError('Too many iterables in the workflow')
-            iterable_prefix =\
-            allprefixes[allprefixes.index(prior_prefix[-1]) + 1]
-        logger.debug(('subnodes:', subnodes))
-
+        logger.debug('node: %s iterables: %s' % (inode, iterables))
+        subnodes = list(dfs_preorder(graph_in, inode))
+        iterable_prefix = _next_iterables_expansion_prefix(subnodes)
         # append a suffix to the iterable node id
         inode._id += ('.' + iterable_prefix + 'I')
-
         # merge the iterated subgraphs
         subgraph = graph_in.subgraph(subnodes)
-        graph_in = _merge_graphs(graph_in, subnodes,
-                                 subgraph, inode._hierarchy + inode._id,
+        inid = '.'.join((inode._hierarchy, inode._id))
+        graph_in = _merge_graphs(graph_in, subnodes, subgraph, inid,
                                  iterables, iterable_prefix, inode.synchronize)
 
         # reconnect the join nodes
