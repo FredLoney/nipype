@@ -79,6 +79,9 @@ class NipypeConfig(object):
         self.data_file = os.path.join(config_dir, 'nipype.json')
         self._config.readfp(StringIO(default_cfg))
         self._config.read([new_config_file, old_config_file, 'nipype.cfg'])
+        # The log directory environment variable takes precedence
+        if 'NIPYPE_LOG_DIR' in os.environ:
+            self.set_log_dir(os.environ['NIPYPE_LOG_DIR'])
 
     def set_default_config(self):
         self._config.readfp(StringIO(default_cfg))
