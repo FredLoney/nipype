@@ -1522,7 +1522,7 @@ class CommandLine(BaseInterface):
             out_environ = {'DISPLAY': display_var}
         except NoOptionError:
             pass
-        iflogger.debug(out_environ)
+        #iflogger.debug(out_environ)
         if isdefined(self.inputs.environ):
             out_environ.update(self.inputs.environ)
         return out_environ
@@ -1601,7 +1601,7 @@ class CommandLine(BaseInterface):
         Formats a trait containing argstr metadata
         """
         argstr = trait_spec.argstr
-        iflogger.debug('%s_%s' % (name, str(value)))
+        #iflogger.debug('%s_%s' % (name, str(value)))
         if trait_spec.is_trait_type(traits.Bool) and "%" not in argstr:
             if value:
                 # Boolean options have no format string. Just append options
