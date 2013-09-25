@@ -115,7 +115,7 @@ class WarpImageMultiTransformInputSpec(ANTSCommandInputSpec):
                               'coregistered functional)'), position=2)
     output_image = File(genfile=True, hash_files=False, argstr='%s',
                         desc=('name of the output warped image'), position = 3, xor=['out_postfix'])
-    out_postfix = File("_wimt", usedefault=True, hash_files=False,
+    out_postfix = traits.Str("_wimt", usedefault=True, hash_files=False,
                        desc=('Postfix that is prepended to all output '
                              'files (default = _wimt)'), xor=['output_image'])
     reference_image = File(argstr='-R %s', xor=['tightest_box'],
