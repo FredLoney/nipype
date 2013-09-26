@@ -114,8 +114,9 @@ class WarpImageMultiTransformInputSpec(ANTSCommandInputSpec):
                        desc=('image to apply transformation to (generally a '
                               'coregistered functional)'), position=2)
     output_image = File(genfile=True, hash_files=False, argstr='%s',
-                        desc=('name of the output warped image'), position = 3, xor=['out_postfix'])
-    out_postfix = File("_wimt", usedefault=True, hash_files=False,
+                        desc=('name of the output warped image'), position=3,
+                        xor=['out_postfix'])
+    out_postfix = traits.Str("_wimt", usedefault=True, hash_files=False,
                        desc=('Postfix that is prepended to all output '
                              'files (default = _wimt)'), xor=['output_image'])
     reference_image = File(argstr='-R %s', xor=['tightest_box'],
@@ -225,9 +226,10 @@ class ApplyTransformsInputSpec(ANTSCommandInputSpec):
     output_image = traits.Str(argstr='--output %s',
                               desc=('output file name'), genfile=True,
                               hash_file=False, xor=['out_postfix'])
-    out_postfix = File("_trans", usedefault=True, hash_files=False,
-                       desc=('Postfix that is appended to all output '
-                             'files (default = _trans)'), xor=['output_image'])
+    out_postfix = traits.Str('_trans', usedefault=True, hash_files=False,
+                             desc=('Postfix that is appended to all output'
+                                   ' files (default = _trans)'),
+                             xor=['output_image'])
     reference_image = File(argstr='--reference-image %s', mandatory=True,
                            desc='reference image space that you wish to warp INTO',
                            exists=True)

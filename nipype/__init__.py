@@ -15,6 +15,10 @@ from distutils.version import LooseVersion
 
 from .fixes.numpy.testing import nosetester
 
+# Set up package information function
+from pkg_info import get_pkg_info as _get_pkg_info
+get_info = lambda: _get_pkg_info(os.path.dirname(__file__))
+
 from pipeline import Node, MapNode, JoinNode, Workflow
 from interfaces import (fsl, spm, freesurfer, afni, ants, slicer, dipy, nipy,
                         mrtrix, camino, DataGrabber, DataSink, SelectFiles,
@@ -64,10 +68,6 @@ def _test_local_install():
                      'trigger some failures')
 
 _test_local_install()
-
-# Set up package information function
-from pkg_info import get_pkg_info as _get_pkg_info
-get_info = lambda: _get_pkg_info(os.path.dirname(__file__))
 
 # Cleanup namespace
 del _test_local_install

@@ -38,9 +38,11 @@ class Logging(object):
 
     def enable_file_logging(self):
         config = self._config
-        LOG_FILENAME = os.path.join(config.get('logging', 'log_directory'),
-                                    'pypeline.log')
-        hdlr = RFHandler(LOG_FILENAME,
+        log_dir = config.get('logging', 'log_directory')
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        log_file = os.path.join(log_dir, 'pypeline.log')
+        hdlr = RFHandler(log_file,
                          maxBytes=int(config.get('logging', 'log_size')),
                          backupCount=int(config.get('logging',
                                                     'log_rotate')))
