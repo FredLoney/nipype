@@ -113,5 +113,6 @@ class SGEPlugin(SGELikeBatchManagerBase):
         taskid = int(re.match("Your job ([0-9]*) .* has been submitted",
                               lines[-1]).groups()[0])
         self._pending[taskid] = node.output_dir()
-        logger.debug('submitted sge task: %d for node %s' % (taskid, node._id))
+        logger.debug('Submitted the SGE task: %d for node %s with qsub'
+                     ' arguments %s' % (taskid, node._id, qsubargs))
         return taskid
