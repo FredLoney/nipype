@@ -327,13 +327,13 @@ class Workflow(WorkflowBase):
             if (srcnode not in newnodes) and not self._has_node(srcnode):
                 newnodes.append(srcnode)
                 logger.debug("Workflow %s added the %s -> %s connection"
-                             " source node %s." % (self.name, srcnode.name,
-                                                  destnode.name, srcnode))
+                             " source node %s." % (self.name, srcnode,
+                                                   destnode, srcnode))
             if (destnode not in newnodes) and not self._has_node(destnode):
                 newnodes.append(destnode)
                 logger.debug("Workflow %s added the %s -> %s connection"
-                             " destination node %s." % (self.name, srcnode.name,
-                                                       destnode.name, destnode))
+                             " destination node %s." % (self.name, srcnode,
+                                                        destnode, destnode))
         if newnodes:
             self._check_nodes(newnodes)
             for node in newnodes:
