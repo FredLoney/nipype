@@ -707,10 +707,10 @@ def generate_expanded_graph(graph_in):
             for in_nodes in expansions.itervalues():
                 in_nodes.sort(key=lambda node: node._id)
 
-            # the number of join source replicates.
+            # the number of join source replicates
             iter_cnt = count_iterables(iterables, inode.synchronize)
             # make new join node fields to connect to each replicated
-            # join in-edge source node.
+            # join in-edge source node
             slot_dicts = [jnode._add_join_item_fields() for _ in range(iter_cnt)]
             # for each join in-edge, connect every expanded source node
             # which matches on the in-edge source name to the destination
@@ -722,11 +722,10 @@ def generate_expanded_graph(graph_in):
             # integrity.
             for old_id, in_nodes in expansions.iteritems():
                 # validate the expansion count
-                if len(in_nodes) > len(slot_dicts):
+                if len(in_nodes) > iter_cnt:
                     raise Exception("The number of iterable node %s expansions"
-                                    " %d exceeds the number of join node %s"
-                                    " slots %d" % (inode, len(in_nodes), 
-                                                   jnode, len(slot_dicts)))
+                                    " %d exceeds the number of iterables %d" %
+                                    (old_id, len(in_nodes), iter_cnt))
                 # reconnect each replication of the current join in-edge
                 # source
                 for in_idx, in_node in enumerate(in_nodes):
