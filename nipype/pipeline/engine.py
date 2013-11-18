@@ -29,6 +29,7 @@ import sys
 from tempfile import mkdtemp
 from warnings import warn
 from hashlib import sha1
+from collections import defaultdict
 
 import numpy as np
 
@@ -293,131 +294,7 @@ class Workflow(WorkflowBase):
              function as we use the inspect module to get at the source code
              and execute it remotely
         """
-        if not args:
-            raise ValueError('Missing the %s connect function parameters' %
-                             self.name)
-        elif len(args) == 1:
-            connection_list = args[0]
-        elif len(args) == 4:
-            connection_list = [(args[0], args[2], [(args[1], args[3])])]
-        else:
-            raise ValueError('Unknown set of parameters to the %s connect'
-                            ' function: %s: ' % (self.name, args))
-        if not kwargs:
-            disconnect = False
-        else:
-            disconnect = kwargs['disconnect']
-        newnodes = []
-        for srcnode, destnode, _ in connection_list:
-            if not srcnode or not destnode:
-                raise ValueError('Missing a node in the %s connection list:'
-                                 ' %s' % (self.name, connection_list))
-            if self in [srcnode, destnode]:
-                msg = ('Workflow connect cannot contain itself as node:'
-                       ' src[%s] dest[%s] workflow[%s]') % (srcnode,
-                                                            destnode,
-                                                            self.name)
-
-                raise IOError(msg)
-            if (srcnode not in newnodes) and not self._has_node(srcnode):
-                newnodes.append(srcnode)
-                logger.debug("Workflow %s added the %s -> %s connection"
-                             " source node %s." % (self.name, srcnode,
-                                                   destnode, srcnode))
-            if (destnode not in newnodes) and not self._has_node(destnode):
-                newnodes.append(destnode)
-                logger.debug("Workflow %s added the %s -> %s connection"
-                             " destination node %s." % (self.name, srcnode,
-                                                        destnode, destnode))
-        if newnodes:
-            self._check_nodes(newnodes)
-            for node in newnodes:
-                if node._hierarchy is None:
-                    node._hierarchy = self.name
-        not_found = []
-        connected_ports = {}
-        for srcnode, destnode, connects in connection_list:
-            if destnode not in connected_ports:
-                connected_ports[destnode] = []
-            # check to see which ports of destnode are already
-            # connected.
-            if not disconnect and (destnode in self._graph.nodes()):
-                for edge in self._graph.in_edges_iter(destnode):
-                    data = self._graph.get_edge_data(*edge)
-                    for sourceinfo, destname in data['connect']:
-                        if destname not in connected_ports[destnode]:
-                            connected_ports[destnode] += [destname]
-            for source, dest in connects:
-                # Currently datasource/sink/grabber.io modules
-                # determine their inputs/outputs depending on
-                # connection settings.  Skip these modules in the check
-                if dest in connected_ports[destnode]:
-                    raise Exception("""
-Trying to connect %s:%s to %s:%s but input '%s' of node '%s' is already
-connected.
-""" % (srcnode, source, destnode, dest, dest, destnode))
-                if not (hasattr(destnode, '_interface') and
-                        '.io' in str(destnode._interface.__class__)):
-                    if not destnode._check_inputs(dest):
-                        not_found.append(['in', destnode.name, dest])
-                if not (hasattr(srcnode, '_interface') and
-                        '.io' in str(srcnode._interface.__class__)):
-                    if isinstance(source, tuple):
-                        # handles the case that source is specified
-                        # with a function
-                        sourcename = source[0]
-                    elif isinstance(source, str):
-                        sourcename = source
-                    else:
-                        raise Exception(('Unknown source specification in '
-                                         'connection from output of %s') %
-                                        srcnode.name)
-                    if sourcename and not srcnode._check_outputs(sourcename):
-                        not_found.append(['out', srcnode.name, sourcename])
-                connected_ports[destnode] += [dest]
-        infostr = []
-        for info in not_found:
-            infostr += ["The %s workflow module %s has no %sput called %s\n" %
-                        (self.name, info[1], info[0], info[2])]
-        if not_found:
-            raise Exception('\n'.join(['Some connections were not found'] +
-                                      infostr))
-
-        # turn functions into strings
-        for srcnode, destnode, connects in connection_list:
-            for idx, (src, dest) in enumerate(connects):
-                if isinstance(src, tuple) and not isinstance(src[1], str):
-                    function_source = getsource(src[1])
-                    connects[idx] = ((src[0], function_source, src[2:]), dest)
-
-        # add connections
-        for srcnode, destnode, connects in connection_list:
-            edge_data = self._graph.get_edge_data(srcnode, destnode, None)
-            if edge_data:
-                logger.debug('(%s, %s): Edge data exists: %s'
-                             % (srcnode, destnode, str(edge_data)))
-                for data in connects:
-                    if data not in edge_data['connect']:
-                        edge_data['connect'].append(data)
-                    if disconnect:
-                        logger.debug('Removing connection: %s' % str(data))
-                        edge_data['connect'].remove(data)
-                if edge_data['connect']:
-                    self._graph.add_edges_from([(srcnode,
-                                                 destnode,
-                                                 edge_data)])
-                else:
-                    #pass
-                    logger.debug('Removing connection: %s->%s' % (srcnode,
-                                                                  destnode))
-                    self._graph.remove_edges_from([(srcnode, destnode)])
-            elif not disconnect:
-                logger.debug('(%s, %s): No edge data' % (srcnode, destnode))
-                self._graph.add_edges_from([(srcnode, destnode,
-                                             {'connect': connects})])
-            edge_data = self._graph.get_edge_data(srcnode, destnode)
-            logger.debug('(%s, %s): new edge data: %s' % (srcnode, destnode,
-                                                          str(edge_data)))
+        self._connect_graph_nodes(self._graph, *args, **kwargs)
 
     def disconnect(self, *args):
         """Disconnect two nodes
@@ -453,7 +330,7 @@ connected.
             if not issubclass(node.__class__, WorkflowBase):
                 raise Exception('Node %s must be a subclass of WorkflowBase' %
                                 str(node))
-        self._check_nodes(newnodes)
+        self._check_nodes(newnodes, self._graph)
         for node in newnodes:
             if node._hierarchy is None:
                 node._hierarchy = self.name
@@ -550,7 +427,7 @@ connected.
             if graph2use in ['flat', 'exec']:
                 graph = self._create_flat_graph()
             if graph2use == 'exec':
-                graph = generate_expanded_graph(deepcopy(graph))
+                graph = self._generate_expanded_graph(deepcopy(graph))
             export_graph(graph, base_dir, dotfilename=dotfilename,
                          format=format, simple_form=simple_form)
 
@@ -687,7 +564,7 @@ connected.
             del self.config['crashdump_dir']
         logger.info(str(sorted(self.config)))
         self._set_needed_outputs(flatgraph)
-        execgraph = generate_expanded_graph(deepcopy(flatgraph))
+        execgraph = self._generate_expanded_graph(deepcopy(flatgraph))
         for index, node in enumerate(execgraph.nodes()):
             node.config = merge_dict(deepcopy(self.config), node.config)
             node.base_dir = self.base_dir
@@ -697,10 +574,228 @@ connected.
         self._configure_exec_nodes(execgraph)
         if str2bool(self.config['execution']['create_report']):
             self._write_report_info(self.base_dir, self.name, execgraph)
+
         runner.run(execgraph, updatehash=updatehash, config=self.config)
         return execgraph
 
     # PRIVATE API AND FUNCTIONS
+    
+    class GraphConnector(object):
+        def __init__(self, workflow, graph):
+            self._workflow = workflow
+            self._graph = graph
+        
+        def connect(self, *args, **kwargs):
+            self._workflow._connect_graph_nodes(self._graph, *args, **kwargs)
+
+            
+    def _connect_graph_nodes(self, graph, *args, **kwargs):
+        """Connect nodes in the given workflow graph.
+
+        This routine also checks if inputs and outputs are actually provided by
+        the nodes that are being connected.
+
+        Creates edges in the directed graph using the nodes and edges specified
+        in the `connection_list`.  Uses the NetworkX method
+        DiGraph.add_edges_from.
+
+        Parameters
+        ----------
+
+        args : list or a set of four positional arguments
+
+            Four positional arguments of the form::
+
+              connect(source, sourceoutput, dest, destinput)
+
+            source : nodewrapper node
+            sourceoutput : string (must be in source.outputs)
+            dest : nodewrapper node
+            destinput : string (must be in dest.inputs)
+
+            A list of 3-tuples of the following form::
+
+             [(source, target,
+                 [('sourceoutput/attribute', 'targetinput'),
+                 ...]),
+             ...]
+
+            Or::
+
+             [(source, target, [(('sourceoutput1', func, arg2, ...),
+                                         'targetinput'), ...]),
+             ...]
+             sourceoutput1 will always be the first argument to func
+             and func will be evaluated and the results sent ot targetinput
+
+             currently func needs to define all its needed imports within the
+             function as we use the inspect module to get at the source code
+             and execute it remotely
+        """
+        if not args:
+            raise ValueError('Missing the %s connect function parameters' %
+                             self.name)
+        elif len(args) == 1:
+            connection_list = args[0]
+        elif len(args) == 4:
+            connection_list = [(args[0], args[2], [(args[1], args[3])])]
+        else:
+            raise ValueError('Unknown set of parameters to the %s connect'
+                            ' function: %s: ' % (self.name, args))
+        if not kwargs:
+            disconnect = False
+        else:
+            disconnect = kwargs['disconnect']
+
+        # Guard against connections of a node to itself or a missing node
+        newnodes = []
+        for srcnode, destnode, _ in connection_list:
+            if not srcnode or not destnode:
+                raise ValueError('Missing a node in the %s connection list:'
+                                 ' %s' % (self.name, connection_list))
+            if self in [srcnode, destnode]:
+                msg = ('Workflow connect cannot contain itself as node:'
+                       ' src[%s] dest[%s] workflow[%s]') % (srcnode,
+                                                            destnode,
+                                                            self.name)
+
+                raise IOError(msg)
+            if (srcnode not in newnodes) and not self._has_node(srcnode, graph):
+                newnodes.append(srcnode)
+                logger.debug("Workflow %s added the %s -> %s connection"
+                             " source node %s." % (self.name, srcnode,
+                                                   destnode, srcnode))
+            if (destnode not in newnodes) and not self._has_node(destnode, graph):
+                newnodes.append(destnode)
+                logger.debug("Workflow %s added the %s -> %s connection"
+                             " destination node %s." % (self.name, srcnode,
+                                                        destnode, destnode))
+        if newnodes:
+            self._check_nodes(newnodes, graph)
+            for node in newnodes:
+                if node._hierarchy is None:
+                    node._hierarchy = self.name
+
+        not_found = []
+        connected_ports = {}
+        for srcnode, destnode, connects in connection_list:
+            if destnode not in connected_ports:
+                connected_ports[destnode] = []
+            # check to see which ports of destnode are already
+            # connected.
+            if not disconnect and (destnode in graph.nodes()):
+                for edge in graph.in_edges_iter(destnode):
+                    data = graph.get_edge_data(*edge)
+                    for sourceinfo, destname in data['connect']:
+                        if destname not in connected_ports[destnode]:
+                            connected_ports[destnode] += [destname]
+            for source, dest in connects:
+                # Currently datasource/sink/grabber.io modules
+                # determine their inputs/outputs depending on
+                # connection settings.  Skip these modules in the check
+                if dest in connected_ports[destnode]:
+                    raise Exception("""
+Trying to connect %s:%s to %s:%s but input '%s' of node '%s' is already
+connected.
+""" % (srcnode, source, destnode, dest, dest, destnode))
+                if not (hasattr(destnode, '_interface') and
+                        '.io' in str(destnode._interface.__class__)):
+                    if not destnode._check_inputs(dest):
+                        not_found.append(['in', destnode.name, dest])
+                if not (hasattr(srcnode, '_interface') and
+                        '.io' in str(srcnode._interface.__class__)):
+                    if isinstance(source, tuple):
+                        # handles the case that source is specified
+                        # with a function
+                        sourcename = source[0]
+                    elif isinstance(source, str):
+                        sourcename = source
+                    else:
+                        raise Exception(('Unknown source specification in '
+                                         'connection from output of %s') %
+                                        srcnode.name)
+                    if sourcename and not srcnode._check_outputs(sourcename):
+                        not_found.append(['out', srcnode.name, sourcename])
+                connected_ports[destnode] += [dest]
+        infostr = []
+        for info in not_found:
+            infostr += ["The %s workflow module %s has no %sput called %s\n" %
+                        (self.name, info[1], info[0], info[2])]
+        if not_found:
+            raise Exception('\n'.join(['Some connections were not found'] +
+                                      infostr))
+
+        # turn functions into strings
+        for srcnode, destnode, connects in connection_list:
+            for idx, (src, dest) in enumerate(connects):
+                if isinstance(src, tuple) and not isinstance(src[1], str):
+                    function_source = getsource(src[1])
+                    connects[idx] = ((src[0], function_source, src[2:]), dest)
+
+        # add connections
+        for srcnode, destnode, connects in connection_list:
+            edge_data = graph.get_edge_data(srcnode, destnode, None)
+            if edge_data:
+                logger.debug('(%s, %s): Edge data exists: %s'
+                             % (srcnode, destnode, str(edge_data)))
+                for data in connects:
+                    if data not in edge_data['connect']:
+                        edge_data['connect'].append(data)
+                    if disconnect:
+                        logger.debug('Removing connection: %s' % str(data))
+                        edge_data['connect'].remove(data)
+                if edge_data['connect']:
+                    graph.add_edges_from([(srcnode,
+                                                 destnode,
+                                                 edge_data)])
+                else:
+                    #pass
+                    logger.debug('Removing connection: %s->%s' % (srcnode,
+                                                                  destnode))
+                    graph.remove_edges_from([(srcnode, destnode)])
+            elif not disconnect:
+                logger.debug('(%s, %s): No edge data' % (srcnode, destnode))
+                graph.add_edges_from([(srcnode, destnode,
+                                             {'connect': connects})])
+            edge_data = graph.get_edge_data(srcnode, destnode)
+            logger.debug('(%s, %s): new edge data: %s' % (srcnode, destnode,
+                                                          str(edge_data)))
+    
+    def _generate_expanded_graph(self, graph_in):
+        """Expands the given graph in the context of this workflow.
+        
+        Returns the expanded graph.
+        """
+        # Expand the graph
+        graph_out = generate_expanded_graph(graph_in)
+        # Collect the iterconnect nodes
+        iterconnect_dict = defaultdict(list)
+        for node in graph_out.nodes():
+            if node.iterconnect:
+                # Group the iterconnect nodes by a common
+                # pre-expansion origin
+                key = (node._hierarchy, node.name)
+                iterconnect_dict[key].append(node)
+        # Call the iterconnect functions
+        connector = self.GraphConnector(self, graph_out)
+        for nodes in iterconnect_dict.itervalues():
+            # There must be at least two nodes to connect
+            if len(nodes) > 1:
+                # Sort the nodes by id, since the node id is in
+                # iterable order
+                nodes.sort(None, lambda n: n._id)
+                # Each of the nodes has a copy of the iterconnect
+                # source function, so grab the first one
+                func_src = nodes[0].iterconnect
+                # Make a callable from the source
+                func = create_function_from_source(func_src)
+                # Call the itersource function
+                func(connector, nodes)
+                # Update the node needed outputs with the new connections
+                for node in nodes:
+                    self._add_node_needed_outputs(graph_out, node)
+        
+        return graph_out
 
     def _write_report_info(self, workingdir, name, graph):
         if workingdir is None:
@@ -765,17 +860,21 @@ connected.
             return
         for node in graph.nodes():
             node.needed_outputs = []
-            for edge in graph.out_edges_iter(node):
-                data = graph.get_edge_data(*edge)
-                for sourceinfo, _ in sorted(data['connect']):
-                    if isinstance(sourceinfo, tuple):
-                        input_name = sourceinfo[0]
-                    else:
-                        input_name = sourceinfo
-                    if input_name not in node.needed_outputs:
-                        node.needed_outputs += [input_name]
-            if node.needed_outputs:
-                node.needed_outputs = sorted(node.needed_outputs)
+            self._add_node_needed_outputs(graph, node)
+
+    def _add_node_needed_outputs(self, graph, node):
+        """Updates the node needed outputs list."""
+        for edge in graph.out_edges_iter(node):
+            data = graph.get_edge_data(*edge)
+            for sourceinfo, _ in sorted(data['connect']):
+                if isinstance(sourceinfo, tuple):
+                    input_name = sourceinfo[0]
+                else:
+                    input_name = sourceinfo
+                if input_name not in node.needed_outputs:
+                    node.needed_outputs += [input_name]
+        if node.needed_outputs:
+            node.needed_outputs = sorted(node.needed_outputs)
 
     def _configure_exec_nodes(self, graph):
         """Ensure that each node knows where to get inputs from
@@ -790,12 +889,12 @@ connected.
                          'result_%s.pklz' % edge[0].name),
                          sourceinfo)
 
-    def _check_nodes(self, nodes):
-        """Checks if any of the nodes are already in the graph
+    def _check_nodes(self, nodes, graph):
+        """Checks if any of the nodes are already in the given graph
 
         """
-        node_names = [node.name for node in self._graph.nodes()]
-        node_lineage = [node._hierarchy for node in self._graph.nodes()]
+        node_names = [node.name for node in graph.nodes()]
+        node_lineage = [node._hierarchy for node in graph.nodes()]
         for node in nodes:
             if node.name in node_names:
                 idx = node_names.index(node.name)
@@ -914,11 +1013,18 @@ connected.
                 allnodes.append(node)
         return allnodes
 
-    def _has_node(self, wanted_node):
-        for node in self._graph.nodes():
+    def _has_node(self, wanted_node, graph=None):
+        """
+        Detects whether this workflow contains the given node
+        in the graph. The default graph is this workflow's
+        graph.
+        """
+        if not graph:
+            graph = self._graph
+        for node in graph.nodes():
             if wanted_node == node:
                 return True
-            if isinstance(node, Workflow):
+            if graph == self._graph and isinstance(node, Workflow):
                 if node._has_node(wanted_node):
                     return True
         return False
@@ -1108,8 +1214,8 @@ class Node(WorkflowBase):
     """
 
     def __init__(self, interface, name, iterables=None, itersource=None,
-                 synchronize=False, overwrite=None, needed_outputs=None,
-                 run_without_submitting=False, **kwargs):
+                 synchronize=False, iterconnect=None, overwrite=None,
+                 needed_outputs=None, run_without_submitting=False, **kwargs):
         """
         Parameters
         ----------
@@ -1159,6 +1265,9 @@ class Node(WorkflowBase):
             Otherwise, this iterable node is expanded once per
             each permutation of the iterables values.
 
+        iterconnect: method
+            Callback method to connect iterable nodes.
+
         overwrite : Boolean
             Whether to overwrite contents of output directory if it already
             exists. If directory exists and hash matches it
@@ -1195,6 +1304,10 @@ class Node(WorkflowBase):
         if needed_outputs:
             self.needed_outputs = sorted(needed_outputs)
         self._got_inputs = False
+        if iterconnect:
+            self.iterconnect = getsource(iterconnect)
+        else:
+            self.iterconnect = None
 
     @property
     def interface(self):
@@ -1493,7 +1606,6 @@ class Node(WorkflowBase):
                 outputs = result.outputs.dictcopy()  # outputs was a bunch
             result.outputs.set(**modify_paths(outputs, relative=True,
                                               basedir=cwd))
-
         savepkl(resultsfile, result)
         logger.debug('saved results in %s' % resultsfile)
 
