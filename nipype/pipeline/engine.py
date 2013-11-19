@@ -786,11 +786,13 @@ connected.
                 nodes.sort(None, lambda n: n._id)
                 # Each of the nodes has a copy of the iterconnect
                 # source function, so grab the first one
-                func_src = nodes[0].iterconnect
+                iterconnect = nodes[0].iterconnect
+                func_src = iterconnect[0]
+                func_args = iterconnect[1:]
                 # Make a callable from the source
                 func = create_function_from_source(func_src)
                 # Call the itersource function
-                func(connector, nodes)
+                func(connector, nodes, *func_args)
                 # Update the node needed outputs with the new connections
                 for node in nodes:
                     self._add_node_needed_outputs(graph_out, node)
@@ -1305,7 +1307,14 @@ class Node(WorkflowBase):
             self.needed_outputs = sorted(needed_outputs)
         self._got_inputs = False
         if iterconnect:
-            self.iterconnect = getsource(iterconnect)
+            if isinstance(iterconnect, tuple) or isinstance(iterconnect, list):
+                iterconnect_meth = iterconnect[0]
+                iterconnect_args = list(iterconnect[1:])
+            else:
+                iterconnect_meth = iterconnect
+                iterconnect_args = []
+            iterconnect_src = getsource(iterconnect_meth)
+            self.iterconnect = tuple([iterconnect_src] + iterconnect_args)
         else:
             self.iterconnect = None
 
