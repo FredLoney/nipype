@@ -476,7 +476,7 @@ def _prune_identity_nodes(graph, keep_iterables=False):
     
     * join nodes are retained
     
-    * a node with an iterconnect is retained
+    * an iterable connect source or target is retained
     
     * iterable nodes are retained if and only if the keep_iterables
       flag is set to True
@@ -484,7 +484,7 @@ def _prune_identity_nodes(graph, keep_iterables=False):
     # if keep_iterables is False, then include the iterable
     # and join nodes in the nodes to delete
     for node in _identity_nodes(graph, not keep_iterables):
-        if not hasattr(node, 'joinsource') and not hasattr(node, 'iterconnect'):
+        if not hasattr(node, 'joinsource') and not node.iterconnect:
             _remove_identity_node(graph, node)
     return graph
 
