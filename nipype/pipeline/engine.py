@@ -235,6 +235,8 @@ class Workflow(WorkflowBase):
         super(Workflow, self).__init__(name, base_dir, *args, **kwargs)
         self._graph = nx.DiGraph()
         self.config = deepcopy(config._sections)
+        # The iterable connections
+        self._iterconnects = {}
 
     # PUBLIC API
     def clone(self, name):
@@ -300,6 +302,49 @@ class Workflow(WorkflowBase):
              and execute it remotely
         """
         self._connect_graph_nodes(self._graph, *args, **kwargs)
+    
+    def connect_iterables(self, src_node, dest_node, method, **kwargs):
+        """Adds the given iterable connection specification.
+        The given method is called after this workflow's iterables
+        are expanded. The method arguments include the expanded
+        source nodes, destination nodes and the given keyword
+        arguments.
+        
+        Example
+        -------
+        workflow.connect_iterables(realign, inputspec, connect_references,
+                                   dict(initial_reference=ref_0,
+                                        bolus_uptake_index=3))
+        def connect_references(workflow, realigned_nodes, input_nodes,
+                               ref_0, bolus_uptake_index):
+            # Each realigned image before bolus uptake is the reference
+            # for the prior image.
+            for i in range(1, bolus_uptake_index):
+                workflow.connect(realigned_nodes[i], 'out_file',
+                                 input_nodes[i - 1], 'reference')
+            # The initial reference is used for the bolus arrival image
+            # and its successor.
+            input_nodes[bolus_uptake_index].inputs.reference = ref_0
+            input_nodes[bolus_uptake_index + 1].inputs.reference = ref_0
+            # Each realigned image after bolus uptake is the reference
+            # for the next image.
+            for i in range(bolus_uptake_index, len(realigned_nodes)):
+                workflow.connect(realigned_nodes[i], 'out_file',
+                                 input_nodes[i + 1], 'reference')
+        
+        Parameters
+        ----------
+        src_node: the connection source node
+        dest_node: the connection destination node
+        method: the connect method
+        kwargs: the fixed connect method arguments
+        """
+        src_key = (src_node._hierarchy, src_node.name)
+        dest_key = (dest_node._hierarchy, dest_node.name)
+        func_src = getsource(method)
+        self._iterconnects[(src_key, dest_key)] = (func_src, kwargs)
+        # Set the iterconnect node flag
+        src_node.iterconnect = dest_node.iterconnect = True
 
     def disconnect(self, *args):
         """Disconnect two nodes
@@ -773,34 +818,50 @@ connected.
         """
         # Expand the graph
         graph_out = generate_expanded_graph(graph_in)
-        # Collect the iterconnect nodes
-        iterconnect_dict = defaultdict(list)
-        for node in graph_out.nodes():
-            if node.iterconnect:
-                # Group the iterconnect nodes by a common
-                # pre-expansion origin
-                key = (node._hierarchy, node.name)
-                iterconnect_dict[key].append(node)
-        # Call the iterconnect functions
-        connector = self.GraphConnector(self, graph_out)
-        for nodes in iterconnect_dict.itervalues():
-            # There must be at least two nodes to connect
-            if len(nodes) > 1:
-                # Sort the nodes by id, since the node id is in
-                # iterable order
-                nodes.sort(None, lambda n: n._id)
-                # Each of the nodes has a copy of the iterconnect
-                # source function, so grab the first one
-                func_src = nodes[0].iterconnect
-                # Make a callable from the source
-                func = create_function_from_source(func_src)
-                # Call the itersource function
-                func(connector, nodes)
-                # Update the node needed outputs with the new connections
-                for node in nodes:
-                    self._add_node_needed_outputs(graph_out, node)
+        # Call the iterable connect functions, if necessary
+        if self._iterconnects:
+            self._connect_expanded_iterables(graph_out)
         
         return graph_out
+    
+    def _connect_expanded_iterables(self, graph):
+        # The iterable connection source and destination node
+        # (hierarchy, name) tuples
+        sources, dests = zip(*self._iterconnects.iterkeys())
+        connected = set(sources + dests)
+        # Group the iterable connection nodes by a common
+        # pre-expansion origin
+        expansions = defaultdict(list)
+        for node in graph.nodes():
+            key = (node._hierarchy, node.name)
+            if key in sources or key in dests:
+                expansions[key].append(node)
+        # Call the iterconnect functions
+        connector = self.GraphConnector(self, graph)
+        for src_dest, func_spec in self._iterconnects.iteritems():
+            src, dest = src_dest
+            src_nodes = expansions[src]
+            dest_nodes = expansions[dest]
+            # There must be the same number of expansions
+            if len(src_nodes) != len(dest_nodes):
+                raise ValueError("The iterable connection nodes %s and %s have"
+                                 " a different expansion size: %d and %d,"
+                                 "respectively" %
+                                 (src, dest, len(src_nodes), len(dest_nodes)))
+
+            # Sort the nodes by id, since the node id is in iterable order
+            src_nodes.sort(None, lambda n: n._id)
+            dest_nodes.sort(None, lambda n: n._id)
+            func_src, func_kwargs = func_spec
+            # Make a callable from the source
+            func = create_function_from_source(func_src)
+            # Call the itersource function
+            func(connector, src_nodes, dest_nodes, **func_kwargs)
+            # Update the node needed outputs with the new connections
+            for node in src_nodes:
+                self._add_node_needed_outputs(graph, node)
+        
+        return graph
 
     def _write_report_info(self, workingdir, name, graph):
         if workingdir is None:
@@ -1309,10 +1370,7 @@ class Node(WorkflowBase):
         if needed_outputs:
             self.needed_outputs = sorted(needed_outputs)
         self._got_inputs = False
-        if iterconnect:
-            self.iterconnect = getsource(iterconnect)
-        else:
-            self.iterconnect = None
+        self.iterconnect = False
 
     @property
     def interface(self):

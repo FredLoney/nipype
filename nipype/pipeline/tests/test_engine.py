@@ -377,9 +377,14 @@ def add(values):
     """A sum function that can be used in a connect."""
     return sum(values)
 
-def iterconnect_nodes(workflow, nodes):
-    for i in range(1, len(nodes)):
-        workflow.connect(nodes[i - 1], 'output2', nodes[i], 'input2')
+def increment(base, step=1):
+    """Returns base + step."""
+    return base + step
+
+def iterconnect_nodes(workflow, src_nodes, dest_nodes):
+    for i in range(1, len(src_nodes)):
+        workflow.connect(src_nodes[i - 1], 'output2',
+                         dest_nodes[i], 'input2')
 
 def test_iterconnect_expansion():
     import nipype.pipeline.engine as pe
@@ -389,10 +394,11 @@ def test_iterconnect_expansion():
     tempdir = tempfile.mkdtemp()
     wf = pe.Workflow(name='test', base_dir=tempdir)
     node1 = pe.Node(TestInterface(), name='node1')
-    node2 = pe.Node(TestInterface(), name='node2', iterconnect=iterconnect_nodes)
+    node2 = pe.Node(TestInterface(), name='node2')
     node3 = pe.Node(TestInterface(), name='node3')
     wf.connect(node1, ('output1', add), node2, 'input1')
     wf.connect(node2, ('output1', add), node3, 'input1')
+    wf.connect_iterables(node3, node2, iterconnect_nodes)
     node1.iterables = ('input1', [1, 2, 3])
 
     cwd = os.getcwd()
@@ -403,12 +409,60 @@ def test_iterconnect_expansion():
         os.chdir(cwd)
         shutil.rmtree(tempdir)
 
+    # The result graph node2 expansion nodes
     node2s = [n for n in result.nodes() if n.name == 'node2']
+    # Sort on node id, which is in expansion order
     node2s.sort(None, lambda node: node._id)
     # Compare against the inputs, since the workflow result outputs
-    # are cleared
-    input2s = [n.inputs.input2 for n in node2s if n.name == 'node2']
-    yield assert_equal, input2s, [nib.Undefined, 2, 5]
+    # are cleared. The expected results are as follows:
+    #      node1              node2            node3           node2
+    #   input1 output1   input1 output1     input1 output2     input2
+    #   ------ -------   ------ -------     ----- -------      ------
+    #     1    [1, 1] --->  2   [1, 2]  --->  3      3  ---\     1
+    #     2    [1, 2] --->  3   [1, 3]  --->  4      4  -\  \--> 3
+    #     3    [1, 3] --->  4   [1, 4]  --->  5      5    \--->  4 
+    input2s = [n.inputs.input2 for n in node2s]
+    yield assert_equal, input2s, [nib.Undefined, 3, 4]
+
+def iterconnect_nodes_with_offset(workflow, src_nodes, dest_nodes, offset):
+    from nipype.pipeline.tests.test_engine import increment
+    
+    for i in range(1, len(src_nodes)):
+        workflow.connect(src_nodes[i - 1], ('output2', increment, offset),
+                         dest_nodes[i], 'input2')
+
+def test_iterconnect_expansion_with_arguments():
+    import nipype.pipeline.engine as pe
+    import tempfile
+    import shutil
+    
+    tempdir = tempfile.mkdtemp()
+    wf = pe.Workflow(name='test', base_dir=tempdir)
+    node1 = pe.Node(TestInterface(), name='node1')
+    node2 = pe.Node(TestInterface(), name='node2')
+    node3 = pe.Node(TestInterface(), name='node3')
+    wf.connect(node1, ('output1', add), node2, 'input1')
+    wf.connect(node2, ('output1', add), node3, 'input1')
+    wf.connect_iterables(node3, node2, iterconnect_nodes_with_offset, offset=2)
+    node1.iterables = ('input1', [1, 2, 3])
+
+    cwd = os.getcwd()
+    os.chdir(tempdir)
+    try:
+        result = wf.run()
+    finally:
+        os.chdir(cwd)
+        shutil.rmtree(tempdir)
+
+    # The result graph node2 expansion nodes
+    node2s = [n for n in result.nodes() if n.name == 'node2']
+    # Sort on node id, which is in expansion order
+    node2s.sort(None, lambda node: node._id)
+    # Compare against the inputs, since the workflow result outputs
+    # are cleared. The expected results are the same as
+    # test_iterconnect_expansion incremented by the offset 2
+    input2s = [n.inputs.input2 for n in node2s]
+    yield assert_equal, input2s, [nib.Undefined, 5, 6]
 
 def test_disconnect():
     import nipype.pipeline.engine as pe

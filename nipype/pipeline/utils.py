@@ -470,16 +470,21 @@ def _connect_nodes(graph, srcnode, destnode, connection_info):
     else:
         data['connect'].extend(connection_info)
 
-def _remove_nonjoin_identity_nodes(graph, keep_iterables=False):
-    """Remove non-join identity nodes from the given graph
-
-    Iterable nodes are retained if and only if the keep_iterables
-    flag is set to True.
+def _prune_identity_nodes(graph, keep_iterables=False):
+    """Remove identity nodes from the given graph, with the following
+    exceptions:
+    
+    * join nodes are retained
+    
+    * an iterable connect source or target is retained
+    
+    * iterable nodes are retained if and only if the keep_iterables
+      flag is set to True
     """
     # if keep_iterables is False, then include the iterable
     # and join nodes in the nodes to delete
     for node in _identity_nodes(graph, not keep_iterables):
-        if not hasattr(node, 'joinsource'):
+        if not hasattr(node, 'joinsource') and not node.iterconnect:
             _remove_identity_node(graph, node)
     return graph
 
@@ -584,7 +589,7 @@ def generate_expanded_graph(graph_in):
     dfs_preorder = dfs_preorder_function()
     
     logger.debug("PE: expanding iterables")
-    graph_in = _remove_nonjoin_identity_nodes(graph_in, keep_iterables=True)
+    graph_in = _prune_identity_nodes(graph_in, keep_iterables=True)
     # the iterable nodes
     inodes = _iterable_nodes(graph_in)
     logger.debug("Detected iterable nodes %s" % inodes)
@@ -764,7 +769,7 @@ def generate_expanded_graph(graph_in):
                                      sorted(node.parameterization)]
     logger.debug("PE: expanding iterables ... done")
 
-    return _remove_nonjoin_identity_nodes(graph_in)
+    return _prune_identity_nodes(graph_in)
 
 
 def _find_ancestor(graph, node, name, filter=None):
