@@ -27,6 +27,9 @@ from traits.trait_handlers import TraitDictObject, TraitListObject
 from traits.trait_errors import TraitError
 from traits.trait_base import _Undefined
 
+from ... import logging
+logger = logging.getLogger('interface')
+
 class BaseFile ( traits.BaseStr ):
     """ Defines a trait whose value must be the name of a file.
     """
@@ -77,6 +80,8 @@ class BaseFile ( traits.BaseStr ):
         elif os.path.isfile( value ):
             return validated_value
 
+        logger.error("Mandatory output file was not found: %s" % os.path.abspath(value))
+        
         self.error( object, name, value )
 
 
