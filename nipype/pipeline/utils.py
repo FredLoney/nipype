@@ -1086,10 +1086,12 @@ def clean_working_directory(outputs, cwd, inputs, needed_outputs, config,
                   'command.txt', 'result*.pklz', '_inputs.pklz', '_node.pklz']:
         needed_files.extend(glob(os.path.join(cwd, extra)))
     if files2keep:
-        needed_files.extend(filename_to_list(files2keep))
+        keep_files = [os.path.abspath(f) for f in filename_to_list(files2keep)]
+        needed_files.extend(keep_files)
     needed_dirs = [path for path, type in output_files if type == 'd']
     if dirs2keep:
-        needed_dirs.extend(filename_to_list(dirs2keep))
+        keep_dirs = [os.path.abspath(d) for d in filename_to_list(dirs2keep)]
+        needed_dirs.extend(keep_dirs)
     for extra in ['_nipype', '_report']:
         needed_dirs.extend(glob(os.path.join(cwd, extra)))
     logger.debug('Needed files: %s' % (';'.join(needed_files)))
