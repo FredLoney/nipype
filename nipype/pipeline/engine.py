@@ -629,7 +629,7 @@ class Workflow(WorkflowBase):
         return execgraph
 
     # PRIVATE API AND FUNCTIONS
-    
+
     class GraphConnector(object):
         def __init__(self, workflow, graph):
             self._workflow = workflow
@@ -638,7 +638,7 @@ class Workflow(WorkflowBase):
         def connect(self, *args, **kwargs):
             self._workflow._connect_graph_nodes(self._graph, *args, **kwargs)
 
-            
+
     def _connect_graph_nodes(self, graph, *args, **kwargs):
         """Connect nodes in the given workflow graph.
 
@@ -810,7 +810,7 @@ connected.
             edge_data = graph.get_edge_data(srcnode, destnode)
             logger.debug('(%s, %s): new edge data: %s' % (srcnode, destnode,
                                                           str(edge_data)))
-    
+
     def _generate_expanded_graph(self, graph_in):
         """Expands the given graph in the context of this workflow.
         
@@ -823,7 +823,7 @@ connected.
             self._connect_expanded_iterables(graph_out)
         
         return graph_out
-    
+
     def _connect_expanded_iterables(self, graph):
         # The iterable connection source and destination node
         # (hierarchy, name) tuples
@@ -856,7 +856,15 @@ connected.
             # Make a callable from the source
             func = create_function_from_source(func_src)
             # Call the itersource function
+            src_fullname = '.'.join(src)
+            dest_fullname = '.'.join(dest)
+            logger.debug('Calling the %s iterable connection function on the'
+                         ' %d expanded source %s nodes and destination %s'
+                         ' nodes...' % (self.name, len(src_nodes),
+                                        src_fullname, dest_fullname))
             func(connector, src_nodes, dest_nodes, **func_kwargs)
+            logger.debug('Connected the %s -> %s iterables.' %
+                         (src_fullname, dest_fullname))
             # Update the node needed outputs with the new connections
             for node in src_nodes:
                 self._add_node_needed_outputs(graph, node)
@@ -1767,7 +1775,7 @@ class Node(WorkflowBase):
                 runtime=runtime,
                 inputs=self._interface.inputs.get_traitsfree())
             self._result = result
-            logger.debug('Executing node')
+            logger.debug('Executing node %s...' % self)
             if copyfiles:
                 self._copyfiles_to_wd(cwd, execute)
             if issubclass(self._interface.__class__, CommandLine):
@@ -1780,7 +1788,7 @@ class Node(WorkflowBase):
                 fd = open(cmdfile, 'wt')
                 fd.writelines(cmd + "\n")
                 fd.close()
-                logger.info('Running: %s' % cmd)
+                logger.info('Running the %s command: %s...' % (self, cmd))
             try:
                 result = self._interface.run()
             except Exception, msg:
@@ -1796,14 +1804,15 @@ class Node(WorkflowBase):
                                                      self.config,
                                                      dirs2keep=dirs2keep)
             self._save_results(result, cwd)
+            logger.info('Completed node %s execution.' % self)
         else:
-            logger.info("Collecting precomputed outputs")
+            logger.info("Collecting precomputed %s outputs" % self)
             try:
                 result = self._load_results(cwd)
             except (FileNotFoundError, AttributeError):
                 # if aggregation does not work, rerun the node
-                logger.info(("Some of the outputs were not found: "
-                             "rerunning node."))
+                logger.info(("Some of the %s outputs were not found; "
+                             "rerunning node." % self))
                 result = self._run_command(execute=True, copyfiles=False)
         return result
 

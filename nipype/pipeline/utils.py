@@ -1012,6 +1012,19 @@ def make_output_dir(outdir):
 
 
 def get_all_files(infile):
+    """Return a list of files based on the given input file as follows:
+    
+    * The input file is in the list
+    
+    * If the input file has extension .img, then the corresponding .hdr
+      and .mat files in the same directory are in the list
+    
+    * If the input file has extension .img.gz, then the corresponding
+      .hdr.gz file in the same directory are in the list
+    
+    The result files are expanded with the absolute path.
+    """
+    infile = os.path.abspath(infile)
     files = [infile]
     if infile.endswith(".img"):
         files.append(infile[:-4] + ".hdr")

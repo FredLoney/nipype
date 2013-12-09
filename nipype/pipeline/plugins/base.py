@@ -77,16 +77,16 @@ def report_nodes_not_run(notrun):
     the crash.
     """
     if notrun:
-        logger.info("***********************************")
+        logger.error("***********************************")
         for info in notrun:
-            logger.error("could not run node: %s" %
+            logger.error("Execution unsuccessful for node: %s" %
                          '.'.join((info['node']._hierarchy,
                                    info['node']._id)))
-            logger.info("crashfile: %s" % info['crashfile'])
+            logger.error("crashfile: %s" % info['crashfile'])
             logger.debug("The following dependent nodes were not run")
             for subnode in info['dependents']:
                 logger.debug(subnode._id)
-        logger.info("***********************************")
+        logger.error("***********************************")
         raise RuntimeError(('Workflow did not execute cleanly. '
                             'Check log for details'))
 
