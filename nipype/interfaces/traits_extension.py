@@ -27,7 +27,7 @@ from traits.trait_handlers import TraitDictObject, TraitListObject
 from traits.trait_errors import TraitError
 from traits.trait_base import _Undefined
 
-from ... import logging
+from .. import logging
 logger = logging.getLogger('interface')
 
 class BaseFile ( traits.BaseStr ):
