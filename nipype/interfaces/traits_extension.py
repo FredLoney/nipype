@@ -80,8 +80,8 @@ class BaseFile ( traits.BaseStr ):
         elif os.path.isfile( value ):
             return validated_value
 
-        logger.error("Mandatory output file was not found: %s" % os.path.abspath(value))
-        
+        logger.error("Mandatory %s output file was not found: %s" %
+                     (name, os.path.abspath(value)))
         self.error( object, name, value )
 
 
