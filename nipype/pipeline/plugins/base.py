@@ -498,14 +498,14 @@ class SGELikeBatchManagerBase(DistributedPluginBase):
                            'traceback': None}
             results_file = None
             try:
-                msg = 'Job (%s) finished or terminated, but results file '
+                msg = ('Job (%s) finished or terminated, but results file '
                       'does not exist. Batch dir contains crashdump '
-                      'file if node raised an exception' % node_dir
+                      'file if node raised an exception' % node_dir)
                 logger.error(msg)
                 raise IOError(msg)
             except IOError:
                 tb = format_exc()
-                logger.error('Traceback: %s' % tb)
+                logger.error('Traceback:\n%s' % tb)
                 result_data['traceback'] = tb
         else:
             results_file = glob(os.path.join(node_dir, 'result_*.pklz'))[0]
