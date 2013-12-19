@@ -482,15 +482,18 @@ class SGELikeBatchManagerBase(DistributedPluginBase):
         timeout = float(self._config['execution']['job_finished_timeout'])
         timed_out = True
         while (time() - t) < timeout:
+            parent_dir = os.path.realpath(os.path.join(node_dir, '..'))
+            result_file_pat = os.path.join(node_dir, 'result_*.pklz')
             try:
-                logger.debug(os.listdir(os.path.realpath(os.path.join(node_dir,
-                                                                      '..'))))
+                logger.debug(os.listdir(parent_dir))
                 logger.debug(os.listdir(node_dir))
-                glob(os.path.join(node_dir, 'result_*.pklz')).pop()
-                timed_out = False
-                break
+                if glob(result_file_pat):
+                    timed_out = False
+                    break
             except Exception, e:
                 logger.debug(e)
+            logger.debug('Node directory %s results file not found.'
+                         ' Retrying...' % node_dir)
             sleep(2)
         if timed_out:
             result_data = {'hostname': 'unknown',
