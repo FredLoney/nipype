@@ -482,15 +482,18 @@ class SGELikeBatchManagerBase(DistributedPluginBase):
         timeout = float(self._config['execution']['job_finished_timeout'])
         timed_out = True
         while (time() - t) < timeout:
+            parent_dir = os.path.realpath(os.path.join(node_dir, '..'))
+            result_file_pat = os.path.join(node_dir, 'result_*.pklz')
             try:
-                logger.debug(os.listdir(os.path.realpath(os.path.join(node_dir,
-                                                                      '..'))))
+                logger.debug(os.listdir(parent_dir))
                 logger.debug(os.listdir(node_dir))
-                glob(os.path.join(node_dir, 'result_*.pklz')).pop()
-                timed_out = False
-                break
+                if glob(result_file_pat):
+                    timed_out = False
+                    break
             except Exception, e:
                 logger.debug(e)
+            logger.debug('Node directory %s results file not found.'
+                         ' Retrying...' % node_dir)
             sleep(2)
         if timed_out:
             result_data = {'hostname': 'unknown',
@@ -498,11 +501,15 @@ class SGELikeBatchManagerBase(DistributedPluginBase):
                            'traceback': None}
             results_file = None
             try:
-                raise IOError(('Job (%s) finished or terminated, but results file '
-                               'does not exist. Batch dir contains crashdump '
-                               'file if node raised an exception' % node_dir))
-            except IOError, e:
-                result_data['traceback'] = format_exc()
+                msg = ('Job (%s) finished or terminated, but results file '
+                      'does not exist. Batch dir contains crashdump '
+                      'file if node raised an exception' % node_dir)
+                logger.error(msg)
+                raise IOError(msg)
+            except IOError:
+                tb = format_exc()
+                logger.error('Traceback: %s' % tb)
+                result_data['traceback'] = tb
         else:
             results_file = glob(os.path.join(node_dir, 'result_*.pklz'))[0]
             result_data = loadpkl(results_file)
