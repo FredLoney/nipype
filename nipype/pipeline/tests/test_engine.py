@@ -251,7 +251,7 @@ def test_itersource_expansion():
     import nipype.pipeline.engine as pe
     wf1 = pe.Workflow(name='test')
     node1 = pe.Node(TestInterface(),name='node1')
-    node1.iterables = ('input1',[1,2])
+    node1.iterables = ('input1', [1,2])
     node2 = pe.Node(TestInterface(),name='node2')
     wf1.connect(node1,'output1', node2, 'input1')
     node3 = pe.Node(TestInterface(),name='node3')
