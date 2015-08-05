@@ -204,6 +204,7 @@ class DistributedPluginBase(PluginBase):
         self.max_jobs = np.inf
         if plugin_args and 'max_jobs' in plugin_args:
             self.max_jobs = plugin_args['max_jobs']
+            logger.debug("Maximum jobs is set to %d." % self.max_jobs)
 
     def run(self, graph, config, updatehash=False):
         """Executes a pre-defined pipeline using distributed approaches
