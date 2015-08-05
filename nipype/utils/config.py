@@ -82,6 +82,13 @@ class NipypeConfig(object):
         # The log directory environment variable takes precedence
         if 'NIPYPE_LOG_DIR' in os.environ:
             self.set_log_dir(os.environ['NIPYPE_LOG_DIR'])
+        # The log directory should be an absolute path, since task
+        # execution might change the working directory.
+        log_dir = self._config.get('logging', 'log_directory')
+        if log_dir:
+            abs_log_dir = os.path.abspath(log_dir)
+            if abs_log_dir != log_dir:
+                self.set_log_dir(abs_log_dir)
 
     def set_default_config(self):
         self._config.readfp(StringIO(default_cfg))
