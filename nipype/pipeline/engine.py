@@ -312,32 +312,44 @@ class Workflow(WorkflowBase):
         
         Example
         -------
-        workflow.connect_iterables(realign, inputspec, connect_references,
-                                   dict(initial_reference=ref_0,
-                                        bolus_uptake_index=3))
-        def connect_references(workflow, realigned_nodes, input_nodes,
-                               ref_0, bolus_uptake_index):
-            # Each realigned image before bolus uptake is the reference
-            # for the prior image.
-            for i in range(1, bolus_uptake_index):
-                workflow.connect(realigned_nodes[i], 'out_file',
-                                 input_nodes[i - 1], 'reference')
-            # The initial reference is used for the bolus arrival image
-            # and its successor.
-            input_nodes[bolus_uptake_index].inputs.reference = ref_0
-            input_nodes[bolus_uptake_index + 1].inputs.reference = ref_0
-            # Each realigned image after bolus uptake is the reference
-            # for the next image.
-            for i in range(bolus_uptake_index, len(realigned_nodes)):
-                workflow.connect(realigned_nodes[i], 'out_file',
-                                 input_nodes[i + 1], 'reference')
+        def recurse(workflow, reg_nodes, input_nodes, ref_0):
+            '''
+            Connect each registration result to the successor
+            registration node input fixed attribute.
+            
+            :param workflow: the registration workflow
+            :param reg_nodes: the expanded registration nodes
+            :param input_nodes: the expanded iterable input image file nodes
+            :param ref_0: the initial registration fixed image
+            '''
+            # The first input is registered against the initial
+            # fixed image.
+            first = reg_nodes[0]
+            first.inputs.moving = input_nodes[0]
+            first.inputs.fixed = ref_0
+            # Each registration result is the fixed image for
+            # the next registration iteration.
+            for i, predecessor in enumerate(reg_nodes[:-1]):
+                successor = input_nodes[i + 1]
+                workflow.connect(predecessor, 'out_file',
+                                 successor, 'fixed_image')
+
+        ref_0 = '/path/to/initial/fixed/image'
+        input_xfc = IdentityInterface(fields=['in_file'])
+        input_node = pe.Node(input_xfc, name='input_spec')
+        reg_node = pe.Node(ants.Registration(), name='register')
+        workflow.connect(input_node, 'in_file',
+                         reg_node, 'moving_image')
+        input_node.iterables = in_files
+        workflow.connect_iterables(realign, inputspec, recurse,
+                                   ref_0=ref_0)
         
         Parameters
         ----------
         src_node: the connection source node
         dest_node: the connection destination node
         method: the connect method
-        kwargs: the fixed connect method arguments
+        kwargs: the invariant connect method keyword options
         """
         src_key = (src_node._hierarchy, src_node.name)
         dest_key = (dest_node._hierarchy, dest_node.name)
