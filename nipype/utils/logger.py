@@ -39,8 +39,17 @@ class Logging(object):
     def enable_file_logging(self):
         config = self._config
         log_dir = config.get('logging', 'log_directory')
+        # Work around the following bug:
+        # * Nipype on a concurrent execution cluster environment
+        # * has a race condition whereby the log directory is
+        # * created between the exists check and the makedirs
+        # * execution. Work-around is to recheck for existence.
         if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
+            try:
+                os.makedirs(log_dir)
+            except OSError:
+                if not os.path.exists(log_dir):
+                    raise
         log_file = os.path.join(log_dir, 'pypeline.log')
         hdlr = RFHandler(log_file,
                          maxBytes=int(config.get('logging', 'log_size')),
