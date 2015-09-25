@@ -268,6 +268,12 @@ class RegistrationInputSpec(ANTSCommandInputSpec):
               'adjacent displacement field transforms before writing the '
               'results to disk.'))
 
+    # NOTE: Even though only 0=False and 1=True are allowed, ants uses integer
+    # values instead of booleans
+    float = traits.Bool(
+        argstr='--float %d', default=False,
+        desc=('Use float instead of double for computations.'))
+
     transforms = traits.List(traits.Enum('Rigid', 'Affine', 'CompositeAffine',
                                          'Similarity', 'Translation', 'BSpline',
                                          'GaussianDisplacementField', 'TimeVaryingVelocityField',
