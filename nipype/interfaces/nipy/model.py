@@ -20,7 +20,11 @@ except Exception, e:
     warnings.warn('nipy not installed')
 else:
     import nipy.modalities.fmri.design_matrix as dm
-    import nipy.labs.glm.glm as GLM
+    # Suppress the annoying nipy.labs.glm deprecation warning.
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        import nipy.labs.glm.glm as GLM
 
 if have_nipy:
     try:
