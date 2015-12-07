@@ -502,10 +502,12 @@ class SGELikeBatchManagerBase(DistributedPluginBase):
                            'traceback': None}
             results_file = None
             try:
-                msg = ('Job (%s) finished or terminated, but results file '
-                      'does not exist. Batch dir contains crashdump '
-                      'file if node raised an exception' % node_dir)
+                msg = ('Job (%s) finished or terminated, but the results file '
+                       'does not exist matching pattern %s' %
+                       (node_dir, result_file_pat))
                 logger.error(msg)
+                logger.error('The batch dir contains a crashdump file if the '
+                             'workflow node raised an exception.')
                 raise IOError(msg)
             except IOError:
                 tb = format_exc()
