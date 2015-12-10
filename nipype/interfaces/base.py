@@ -28,6 +28,7 @@ from datetime import datetime as dt
 from dateutil.parser import parse as parseutc
 from warnings import warn
 from uuid import uuid1
+from distutils.version import LooseVersion
 
 try:
     import prov.model as pm
@@ -42,7 +43,7 @@ from ..utils.filemanip import (md5, hash_infile, FileNotFoundError,
                                hash_timestamp, save_json,
                                split_filename)
 from ..utils.misc import is_container, trim, str2bool
-from .. import config, logging, LooseVersion
+from .. import config, logging
 from .. import __version__
 
 nipype_version = LooseVersion(__version__)
@@ -50,7 +51,6 @@ nipype_version = LooseVersion(__version__)
 from .. import get_info
 
 iflogger = logging.getLogger('interface')
-
 
 __docformat__ = 'restructuredtext'
 
