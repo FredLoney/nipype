@@ -85,4 +85,5 @@ setup(name=NAME,
       maintainer=MAINTAINER,
       maintainer_email=MAINTAINER_EMAIL,
       packages = find_packages(),
+      package_data = dict(nipype=['COMMIT_INFO.txt']),
       install_requires=requires())
