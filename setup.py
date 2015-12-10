@@ -84,4 +84,5 @@ setup(name=NAME,
       author_email=AUTHOR_EMAIL,
       maintainer=MAINTAINER,
       maintainer_email=MAINTAINER_EMAIL,
+      packages = find_packages(),
       install_requires=requires())
