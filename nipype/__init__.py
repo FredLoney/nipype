@@ -1,11 +1,14 @@
-# emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
-# vi: set ft=python sts=4 ts=4 sw=4 et:
+"""
+Nipype provides imaging Python interfaces and an analysis pipeline.
+"""
 import os
 
-from info import (LONG_DESCRIPTION as __doc__,
-                  URL as __url__,
-                  STATUS as __status__,
-                  __version__)
+__version__ = '0.9.0.pre'
+"""The major.minor.patch[.extra] version designator. An empty *extra*
+qualifier corresponds to a production release. Other *extra* qualifiers
+signify a development release.
+"""
+
 from utils.config import NipypeConfig
 config = NipypeConfig()
 from utils.logger import Logging
