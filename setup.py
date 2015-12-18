@@ -71,7 +71,7 @@ MAINTAINER          = "nipype developers"
 MAINTAINER_EMAIL    = "nipy-devel@neuroimaging.scipy.org"
 
 # Collect the non-package files.
-data_files = [('': ['COMMIT_INFO.txt']),
+data_files = [('', ['COMMIT_INFO.txt']),
               ('pipeline', ['pipeline/report_template.html']),
               ('external', ['external/d3.js']),
               ('interfaces/tests', ['interfaces/tests/realign_json.json'])]
