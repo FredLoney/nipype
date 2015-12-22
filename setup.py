@@ -70,17 +70,6 @@ AUTHOR_EMAIL        = "nipy-devel@neuroimaging.scipy.org"
 MAINTAINER          = "nipype developers"
 MAINTAINER_EMAIL    = "nipy-devel@neuroimaging.scipy.org"
 
-# Collect the non-package files.
-data_files = [('', ['COMMIT_INFO.txt']),
-              ('pipeline', ['pipeline/report_template.html']),
-              ('external', ['external/d3.js']),
-              ('interfaces/tests', ['interfaces/tests/realign_json.json'])]
-data_dirs = ['testing/data/dicomdir', 'testing/data/bedpostxout',
-             'testing/data/tbss_dir', 'workflows/data',
-             'interfaces/script_templates']
-for directory in data_dirs:
-    files = glob.glob(directory + '/*')
-    data_files.append((directory, files))
 
 setup(name=NAME,
       version = version('nipype'),
@@ -96,5 +85,5 @@ setup(name=NAME,
       maintainer=MAINTAINER,
       maintainer_email=MAINTAINER_EMAIL,
       packages = find_packages(),
-      data_files = data_files,
+      include_package_data=True,
       install_requires=requires())

@@ -1,14 +1,18 @@
 include INSTALL
 include LICENSE
 include MANIFEST.in
-include	README
-include THANKS
+include README.rst
+include THANKS.rst
 include Makefile
 include build_docs.py
 include setup_egg.py
-include doc/documentation.zip
 include nipype/COMMIT_INFO.txt
+include nipype/pipeline/report_template.html
+include nipype/external/d3.js
+include nipype/interfaces/tests/realign_json.json
 
 recursive-include doc *
 recursive-include matlabscripts *
 recursive-include tools *
+recursive-include nipype/testing/data *
+recursive-include nipype/workflows/data *
