@@ -1,6 +1,6 @@
 import os
 import re
-import glob
+from glob import glob
 import warnings
 from setuptools import (setup, find_packages)
 
@@ -52,6 +52,7 @@ def long_description():
         return '\n'.join(lines).strip()
 
 
+# The setup constants.
 NAME                = 'nipype'
 DESCRIPTION         = 'Neuroimaging in Python: Pipelines and Interfaces'
 CLASSIFIERS         = ["Development Status :: 5 - Production/Stable",
@@ -72,9 +73,9 @@ MAINTAINER_EMAIL    = "nipy-devel@neuroimaging.scipy.org"
 
 
 setup(name=NAME,
-      version = version('nipype'),
+      version=version('nipype'),
       description=DESCRIPTION,
-      long_description = long_description(),
+      long_description=long_description(),
       url=URL,
       download_url=DOWNLOAD_URL,
       platforms=PLATFORMS,
@@ -85,5 +86,6 @@ setup(name=NAME,
       maintainer=MAINTAINER,
       maintainer_email=MAINTAINER_EMAIL,
       packages = find_packages(),
+      scripts=glob('bin/*'),
       include_package_data=True,
       install_requires=requires())
