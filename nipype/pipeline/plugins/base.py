@@ -585,7 +585,11 @@ class GraphPluginBase(PluginBase):
         for keyword in keywords:
             value = getattr(self, "_" + keyword)
             if keyword == "template" and os.path.isfile(value):
-                value = open(value).read()
+                try:
+                    value = open(value).read()
+                except TypeError:
+                    logger.error("Error reading the value %s" % value)
+                    raise
             if hasattr(node, "plugin_args") and isinstance(node.plugin_args, dict) and keyword in node.plugin_args:
                     if keyword == "template" and os.path.isfile(node.plugin_args[keyword]):
                         tmp_value = open(node.plugin_args[keyword]).read()
