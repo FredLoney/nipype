@@ -588,7 +588,11 @@ class GraphPluginBase(PluginBase):
                 try:
                     value = open(value).read()
                 except TypeError:
-                    logger.error("Error reading the value %s" % value)
+                    # For an unknown reason, logging is disabled at
+                    # this point. Write to stdout instead.
+                    #logger.error("Error reading the value %s" % value)
+                    print ("nipype.pipeline.plugins.base Error reading" +
+                           " the value %s" % value)
                     raise
             if hasattr(node, "plugin_args") and isinstance(node.plugin_args, dict) and keyword in node.plugin_args:
                     if keyword == "template" and os.path.isfile(node.plugin_args[keyword]):
