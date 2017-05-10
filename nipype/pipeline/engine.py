@@ -302,21 +302,21 @@ class Workflow(WorkflowBase):
              and execute it remotely
         """
         self._connect_graph_nodes(self._graph, *args, **kwargs)
-    
+
     def connect_iterables(self, src_node, dest_node, method, **kwargs):
         """Adds the given iterable connection specification.
         The given method is called after this workflow's iterables
         are expanded. The method arguments include the expanded
         source nodes, destination nodes and the given keyword
         arguments.
-        
+
         Example
         -------
         def recurse(workflow, reg_nodes, input_nodes, ref_0):
             '''
             Connect each registration result to the successor
             registration node input fixed attribute.
-            
+
             :param workflow: the registration workflow
             :param reg_nodes: the expanded registration nodes
             :param input_nodes: the expanded iterable input image file nodes
@@ -343,7 +343,7 @@ class Workflow(WorkflowBase):
         input_node.iterables = in_files
         workflow.connect_iterables(realign, inputspec, recurse,
                                    ref_0=ref_0)
-        
+
         Parameters
         ----------
         src_node: the connection source node
@@ -646,7 +646,7 @@ class Workflow(WorkflowBase):
         def __init__(self, workflow, graph):
             self._workflow = workflow
             self._graph = graph
-        
+
         def connect(self, *args, **kwargs):
             self._workflow._connect_graph_nodes(self._graph, *args, **kwargs)
 
@@ -825,7 +825,7 @@ connected.
 
     def _generate_expanded_graph(self, graph_in):
         """Expands the given graph in the context of this workflow.
-        
+
         Returns the expanded graph.
         """
         # Expand the graph
@@ -833,7 +833,7 @@ connected.
         # Call the iterable connect functions, if necessary
         if self._iterconnects:
             self._connect_expanded_iterables(graph_out)
-        
+
         return graph_out
 
     def _connect_expanded_iterables(self, graph):
@@ -880,7 +880,7 @@ connected.
             # Update the node needed outputs with the new connections
             for node in src_nodes:
                 self._add_node_needed_outputs(graph, node)
-        
+
         return graph
 
     def _write_report_info(self, workingdir, name, graph):
@@ -1729,7 +1729,7 @@ class Node(WorkflowBase):
                     logger.debug(('some file does not exist. hence trait '
                                   'cannot be set'))
             else:
-                if result.outputs:
+                if hasattr(result, 'outputs'):
                     try:
                         outputs = result.outputs.get()
                     except TypeError:
